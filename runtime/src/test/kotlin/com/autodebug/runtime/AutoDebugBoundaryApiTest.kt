@@ -55,6 +55,19 @@ class AutoDebugBoundaryApiTest {
     }
 
     @Test
+    fun `logAssignment forwards when enabled`() {
+        AutoDebug.logAssignment("Demo", "bump", "total", 0, 3)
+        assertEquals(listOf("Demo" to "↻ bump · total: 0 → 3"), lines)
+    }
+
+    @Test
+    fun `logAssignment skipped when disabled`() {
+        AutoDebugConfig.enabled = false
+        AutoDebug.logAssignment("Demo", "bump", "total", 0, 3)
+        assertEquals(0, lines.size)
+    }
+
+    @Test
     fun `describeArgs joins name value pairs`() {
         assertEquals(
             "name=Ada, count=42",

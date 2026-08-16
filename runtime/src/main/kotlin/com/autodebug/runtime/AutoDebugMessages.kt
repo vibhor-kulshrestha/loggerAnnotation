@@ -31,4 +31,7 @@ object AutoDebugMessages {
 
     fun branch(method: String, label: String): String =
         "↦ $method · ${truncate(label)}"
+
+    fun assignment(method: String, name: String, oldValue: Any?, newValue: Any?): String =
+        "↻ $method · $name: ${formatValue(oldValue)} → ${formatValue(newValue)}"
 }

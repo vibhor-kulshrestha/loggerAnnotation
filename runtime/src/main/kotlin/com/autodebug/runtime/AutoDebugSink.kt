@@ -44,6 +44,11 @@ object AutoDebug {
     }
 
     @JvmStatic
+    fun logAssignment(tag: String, method: String, name: String, oldValue: Any?, newValue: Any?) {
+        log(tag, AutoDebugMessages.assignment(method, name, oldValue, newValue))
+    }
+
+    @JvmStatic
     fun describeArgs(names: Array<String>, values: Array<out Any?>): String {
         require(names.size == values.size)
         return names.indices.joinToString { i ->

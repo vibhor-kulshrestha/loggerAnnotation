@@ -37,6 +37,23 @@ class AutoDebugMessagesTest {
     }
 
     @Test
+    fun `assignment message shape`() {
+        assertEquals(
+            "↻ bump · total: 0 → 3",
+            AutoDebugMessages.assignment("bump", "total", 0, 3),
+        )
+    }
+
+    @Test
+    fun `assignment truncates long values`() {
+        val long = "x".repeat(400)
+        val out = AutoDebugMessages.assignment("m", "v", long, long)
+        assertTrue(out.contains("↻ m · v: "))
+        assertTrue(out.contains(" → "))
+        assertTrue(out.endsWith("..."))
+    }
+
+    @Test
     fun `enter exit throw message shapes`() {
         assertEquals("⇢ greet(name=Ada)", AutoDebugMessages.enter("greet", "name=Ada"))
         assertEquals("⇠ greet = Hello [12ms]", AutoDebugMessages.exit("greet", "Hello", 12))
