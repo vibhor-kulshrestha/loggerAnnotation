@@ -5,7 +5,7 @@ Kotlin annotation + compiler plugin for progressive debug logging on Android.
 ## Phase status
 
 - [x] Phase 0 — Scaffold (plugin applies, sample assembles)
-- [ ] Phase 1 — BOUNDARY logs
+- [x] Phase 1 — BOUNDARY logs
 - [ ] Phase 2 — BRANCHES
 - [ ] Phase 3 — VARS
 
@@ -19,7 +19,13 @@ Kotlin annotation + compiler plugin for progressive debug logging on Android.
 | `gradle-plugin-build` | Gradle plugin `com.autodebug` |
 | `sample-android` | Manual verification app |
 
+## Toolchain
+
+Kotlin `2.1.21`, AGP `8.9.1`, Gradle `8.13`.
+
 ## Build
+
+Publish compiler artifacts to the local Maven repo before building the sample (required once per clean checkout or after plugin/runtime changes):
 
 ```bash
 ./gradlew :annotations:publishToMavenLocal :runtime:publishToMavenLocal :compiler-plugin:publishToMavenLocal
@@ -30,5 +36,6 @@ Kotlin annotation + compiler plugin for progressive debug logging on Android.
 
 - Spec: `docs/superpowers/specs/2026-08-16-auto-debug-log-design.md`
 - Phase 0 plan: `docs/superpowers/plans/2026-08-16-autodebug-phase-0.md`
+- Phase 1 plan: `docs/superpowers/plans/2026-08-16-autodebug-phase-1.md`
 
 Prior art links: `docs/references.md`.
