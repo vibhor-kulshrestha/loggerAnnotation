@@ -1,10 +1,12 @@
 plugins {
     `kotlin-dsl`
     `java-gradle-plugin`
+    signing
+    id("com.vanniktech.maven.publish") version "0.28.0"
 }
 
-group = "com.autodebug"
-version = "0.1.0-SNAPSHOT"
+group = "io.github.vibhor-kulshrestha"
+version = "0.1.0"
 
 repositories {
     google()
@@ -22,6 +24,37 @@ gradlePlugin {
         create("autodebug") {
             id = "com.autodebug"
             implementationClass = "com.autodebug.gradle.AutoDebugGradlePlugin"
+        }
+    }
+}
+
+mavenPublishing {
+    publishToMavenCentral(com.vanniktech.maven.publish.SonatypeHost.CENTRAL_PORTAL)
+    signAllPublications()
+
+    // Explicitly matches your new GitHub verified group ID
+    coordinates("io.github.vibhor-kulshrestha", "autodebug-plugin", "0.1.0")
+
+    pom {
+        name.set("AutoDebug Gradle Plugin")
+        description.set("A custom gradle plugin for automated debugging.")
+        url.set("https://github.com")
+        licenses {
+            license {
+                name.set("The Apache License, Version 2.0")
+                url.set("http://apache.org")
+            }
+        }
+        developers {
+            developer {
+                id.set("vibhor-kulshrestha")
+                name.set("Vibhor Kulshrestha")
+            }
+        }
+        scm {
+            connection.set("scm:git:://github.com")
+            developerConnection.set("scm:git:ssh://://github.com")
+            url.set("https://github.com")
         }
     }
 }
