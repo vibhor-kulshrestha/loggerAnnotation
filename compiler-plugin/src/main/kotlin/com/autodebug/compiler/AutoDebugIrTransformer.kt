@@ -24,12 +24,16 @@ import org.jetbrains.kotlin.ir.declarations.IrVariable
 import org.jetbrains.kotlin.ir.expressions.IrBlockBody
 import org.jetbrains.kotlin.ir.expressions.IrBody
 import org.jetbrains.kotlin.ir.expressions.IrExpression
+import org.jetbrains.kotlin.ir.expressions.IrGetEnumValue
 import org.jetbrains.kotlin.ir.expressions.IrReturn
+import org.jetbrains.kotlin.ir.expressions.IrWhen
+import org.jetbrains.kotlin.ir.util.isTrueConst
 import org.jetbrains.kotlin.ir.expressions.impl.IrCatchImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrThrowImpl
 import org.jetbrains.kotlin.ir.util.file
 import org.jetbrains.kotlin.ir.util.getAnnotation
 import org.jetbrains.kotlin.ir.util.getAnnotationStringValue
+import org.jetbrains.kotlin.ir.util.getValueArgument
 import org.jetbrains.kotlin.ir.util.hasAnnotation
 import org.jetbrains.kotlin.ir.util.implicitCastIfNeededTo
 import org.jetbrains.kotlin.ir.util.isFileClass
@@ -46,6 +50,9 @@ class AutoDebugIrTransformer(
 
     private val pluginContext get() = symbols.context
     private val autoDebugFqName = FqName("com.autodebug.AutoDebug")
+
+    private enum class EffectiveDepth { BOUNDARY, BRANCHES }
+
     private val typeUnit = pluginContext.irBuiltIns.unitType
     private val typeThrowable = pluginContext.irBuiltIns.throwableType
     private val typeLong = pluginContext.irBuiltIns.longType
@@ -70,6 +77,11 @@ class AutoDebugIrTransformer(
     private fun instrumentBody(function: IrSimpleFunction, body: IrBlockBody): IrBody {
         val tag = readTag(function)
         val methodName = function.name.asString()
+        val branchTransformer = if (readDepth(function) == EffectiveDepth.BRANCHES) {
+            BranchLoggingTransformer(function, tag, methodName)
+        } else {
+            null
+        }
 
         return DeclarationIrBuilder(pluginContext, function.symbol).irBlockBody {
             +irCall(symbols.logEnter).apply {
@@ -86,7 +98,12 @@ class AutoDebugIrTransformer(
 
             val tryBlock = irBlock(resultType = function.returnType) {
                 for (statement in body.statements) {
-                    +statement
+                    val transformed = if (branchTransformer != null) {
+                        statement.transform(branchTransformer, null) as IrStatement
+                    } else {
+                        statement
+                    }
+                    +transformed
                 }
                 if (function.returnType == typeUnit) {
                     +irLogExit(function, tag, methodName, start, irUnit())
@@ -165,6 +182,19 @@ class AutoDebugIrTransformer(
             putValueArgument(0, irGet(start))
         }
 
+    private fun readDepth(function: IrSimpleFunction): EffectiveDepth {
+        val annotation = function.getAnnotation(autoDebugFqName) ?: return EffectiveDepth.BOUNDARY
+        val depthExpr = annotation.getValueArgument(Name.identifier("depth")) ?: return EffectiveDepth.BOUNDARY
+        val enumEntryName = when (depthExpr) {
+            is IrGetEnumValue -> depthExpr.symbol.owner.name.asString()
+            else -> return EffectiveDepth.BOUNDARY
+        }
+        return when (enumEntryName) {
+            "BRANCHES", "VARS" -> EffectiveDepth.BRANCHES
+            else -> EffectiveDepth.BOUNDARY
+        }
+    }
+
     private fun readTag(declaration: IrSimpleFunction): String {
         val explicitTag = declaration.getAnnotation(autoDebugFqName)
             ?.getAnnotationStringValue("tag")
@@ -181,6 +211,51 @@ class AutoDebugIrTransformer(
             current = current.parent as? IrDeclaration
         }
         return declaration.file.fileEntry.name.removeSuffix(".kt")
+    }
+
+    private fun isConstantTrue(condition: IrExpression): Boolean = condition.isTrueConst()
+
+    private fun isBinaryIf(whenExpr: IrWhen): Boolean =
+        whenExpr.branches.size == 2 && isConstantTrue(whenExpr.branches.last().condition)
+
+    private fun branchLabel(whenExpr: IrWhen, index: Int): String {
+        val binaryIf = isBinaryIf(whenExpr)
+        return if (binaryIf) {
+            if (index == 0) "if#$index-then" else "if#$index-else"
+        } else {
+            val branch = whenExpr.branches[index]
+            if (index == whenExpr.branches.lastIndex && isConstantTrue(branch.condition)) {
+                "when#$index-else"
+            } else {
+                "when#$index"
+            }
+        }
+    }
+
+    private inner class BranchLoggingTransformer(
+        private val function: IrSimpleFunction,
+        private val tag: String,
+        private val methodName: String,
+    ) : IrElementTransformerVoid() {
+        override fun visitWhen(expression: IrWhen): IrExpression {
+            val visited = super.visitWhen(expression) as IrWhen
+            for (i in visited.branches.indices) {
+                val branch = visited.branches[i]
+                val label = branchLabel(visited, i)
+                branch.result = wrapBranchResult(branch.result, label)
+            }
+            return visited
+        }
+
+        private fun wrapBranchResult(result: IrExpression, label: String): IrExpression =
+            DeclarationIrBuilder(pluginContext, function.symbol).irBlock(resultType = result.type) {
+                +irCall(symbols.logBranch).apply {
+                    putValueArgument(0, irString(tag))
+                    putValueArgument(1, irString(methodName))
+                    putValueArgument(2, irString(label))
+                }
+                +result
+            }
     }
 
     private inner class ReturnLoggingTransformer(
