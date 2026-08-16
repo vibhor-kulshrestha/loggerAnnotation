@@ -16,3 +16,12 @@ Only then start Phase 1 plan/implementation.
 - [x] Release/debug enable: release compilations get `enabled=false` (or documented equivalent)
 
 Only then start Phase 2.
+
+## Phase 2
+
+- [x] Runtime `logBranch` + unit tests
+- [x] IR instruments IrWhen only when depth is BRANCHES or VARS
+- [x] Compile tests: BOUNDARY has no ↦; BRANCHES covers if + when
+- [x] Sample assembleDebug; Logcat or compile-testing evidence for branch lines
+
+Only then start Phase 3.
