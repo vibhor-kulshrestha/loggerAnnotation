@@ -12,6 +12,9 @@ class MainActivity : Activity() {
 
         val demo = Demo()
         val greeting = demo.greet("AutoDebug")
+        demo.classify(1)
+        demo.classify(-3)
+        demo.pick(2)
         try {
             demo.fail("sample failure")
         } catch (_: Throwable) {
