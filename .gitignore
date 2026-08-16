@@ -11,4 +11,5 @@ captures/
 *.ap_
 *.dex
 .kotlin/
-.superpowers/sdd/
+.superpowers/
+docs/
