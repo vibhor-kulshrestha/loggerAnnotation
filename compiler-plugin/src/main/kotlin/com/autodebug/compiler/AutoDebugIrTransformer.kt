@@ -56,7 +56,7 @@ class AutoDebugIrTransformer(
             return super.visitSimpleFunction(declaration)
         }
         val body = declaration.body
-        if (body == null || declaration.isFakeOverride || declaration.isInline) {
+        if (body == null || declaration.isFakeOverride || declaration.isInline || declaration.isSuspend) {
             return super.visitSimpleFunction(declaration)
         }
         if (body !is IrBlockBody) {
