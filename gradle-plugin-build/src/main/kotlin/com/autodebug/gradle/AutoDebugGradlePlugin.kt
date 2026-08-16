@@ -28,7 +28,9 @@ class AutoDebugGradlePlugin : KotlinCompilerPluginSupportPlugin {
     ): Provider<List<SubpluginOption>> {
         val project = kotlinCompilation.target.project
         return project.provider {
-            listOf(SubpluginOption(key = "enabled", value = "true"))
+            val name = kotlinCompilation.name.lowercase()
+            val enabled = name.contains("debug") && !name.contains("release")
+            listOf(SubpluginOption(key = "enabled", value = enabled.toString()))
         }
     }
 }
