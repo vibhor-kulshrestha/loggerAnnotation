@@ -20,6 +20,7 @@ version = "0.1.0-SNAPSHOT"
 dependencies {
     compileOnly(libs.kotlin.compiler.embeddable)
     compileOnly(project(":annotations"))
+    compileOnly(project(":runtime"))
 }
 
 kotlin {

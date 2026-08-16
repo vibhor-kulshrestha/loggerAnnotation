@@ -10,6 +10,7 @@ class AutoDebugIrGenerationExtension(
 ) : IrGenerationExtension {
     override fun generate(moduleFragment: IrModuleFragment, pluginContext: IrPluginContext) {
         if (!enabled) return
-        moduleFragment.transformChildrenVoid(AutoDebugIrTransformer(enabled = true))
+        val symbols = IrAutoDebugSymbols(pluginContext)
+        moduleFragment.transformChildrenVoid(AutoDebugIrTransformer(symbols))
     }
 }
