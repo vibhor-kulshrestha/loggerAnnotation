@@ -42,6 +42,19 @@ class AutoDebugBoundaryApiTest {
     }
 
     @Test
+    fun `logBranch forwards when enabled`() {
+        AutoDebug.logBranch("Demo", "classify", "if#0-then")
+        assertEquals(listOf("Demo" to "↦ classify · if#0-then"), lines)
+    }
+
+    @Test
+    fun `logBranch skipped when disabled`() {
+        AutoDebugConfig.enabled = false
+        AutoDebug.logBranch("Demo", "classify", "if#0-then")
+        assertEquals(0, lines.size)
+    }
+
+    @Test
     fun `describeArgs joins name value pairs`() {
         assertEquals(
             "name=Ada, count=42",

@@ -39,6 +39,11 @@ object AutoDebug {
     }
 
     @JvmStatic
+    fun logBranch(tag: String, method: String, label: String) {
+        log(tag, AutoDebugMessages.branch(method, label))
+    }
+
+    @JvmStatic
     fun describeArgs(names: Array<String>, values: Array<out Any?>): String {
         require(names.size == values.size)
         return names.indices.joinToString { i ->

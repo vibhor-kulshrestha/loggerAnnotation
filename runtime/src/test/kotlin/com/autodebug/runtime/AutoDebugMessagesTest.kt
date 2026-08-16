@@ -32,6 +32,11 @@ class AutoDebugMessagesTest {
     }
 
     @Test
+    fun `branch message shape`() {
+        assertEquals("↦ classify · if#0-then", AutoDebugMessages.branch("classify", "if#0-then"))
+    }
+
+    @Test
     fun `enter exit throw message shapes`() {
         assertEquals("⇢ greet(name=Ada)", AutoDebugMessages.enter("greet", "name=Ada"))
         assertEquals("⇠ greet = Hello [12ms]", AutoDebugMessages.exit("greet", "Hello", 12))

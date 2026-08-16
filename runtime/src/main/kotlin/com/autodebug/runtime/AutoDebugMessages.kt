@@ -28,4 +28,7 @@ object AutoDebugMessages {
         val msg = truncate(throwable.message ?: "")
         return "⇠ $method threw $type: $msg [${durationMs}ms]"
     }
+
+    fun branch(method: String, label: String): String =
+        "↦ $method · ${truncate(label)}"
 }
