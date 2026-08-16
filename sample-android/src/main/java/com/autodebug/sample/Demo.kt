@@ -22,3 +22,15 @@ class Demo {
         error(message)
     }
 }
+
+class Accumulator {
+    var total = 0
+
+    @AutoDebug(tag = "Demo", depth = DebugDepth.VARS)
+    fun bump(n: Int): Int {
+        var step = 0
+        step = n
+        total = total + step
+        return total
+    }
+}

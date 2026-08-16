@@ -9,6 +9,8 @@ Kotlin annotation + compiler plugin for progressive debug logging on Android.
 - [x] Phase 2 — BRANCHES
 - [ ] Phase 3 — VARS
 
+**VARS depth** logs variable writes only — local `var` assignments and `this` property writes (e.g. `total = …`). It does not log parameters, reads, or fields on other objects.
+
 ## Modules
 
 | Module | Role |

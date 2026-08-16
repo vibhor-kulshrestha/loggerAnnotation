@@ -21,6 +21,10 @@ class MainActivity : Activity() {
             // expected — demo logs throw via @AutoDebug
         }
 
+        val accumulator = Accumulator()
+        accumulator.bump(3)
+        accumulator.bump(2)
+
         val text = TextView(this)
         text.text = greeting
         setContentView(text)
