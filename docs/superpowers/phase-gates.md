@@ -25,3 +25,13 @@ Only then start Phase 2.
 - [x] Sample assembleDebug; Logcat or compile-testing evidence for branch lines
 
 Only then start Phase 3.
+
+## Phase 3
+
+- [x] Runtime `logAssignment` + unit tests
+- [x] IR: VARS-only locals + this-property writes; foreign writes skipped
+- [x] Compile tests: BOUNDARY/BRANCHES have no ↻; VARS covers local + this property
+- [x] Sample assembleDebug; Logcat or compile-testing evidence
+- [x] README notes scope (writes only; locals + this)
+
+Phase 3 complete = product MVP of progressive AutoDebug (A→B→C).
