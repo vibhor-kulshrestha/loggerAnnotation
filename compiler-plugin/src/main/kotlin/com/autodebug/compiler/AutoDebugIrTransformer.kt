@@ -118,10 +118,10 @@ class AutoDebugIrTransformer(
         if (params.isEmpty()) {
             return irString("")
         }
-        val namesArray = irCall(symbols.arrayOfStrings).apply {
+        val namesArray = irCall(symbols.arrayOf).apply {
             putValueArgument(0, irVararg(pluginContext.irBuiltIns.stringType, params.map { irString(it.name.asString()) }))
         }
-        val valuesArray = irCall(symbols.arrayOfAnyNullable).apply {
+        val valuesArray = irCall(symbols.arrayOf).apply {
             putValueArgument(
                 0,
                 irVararg(typeAnyNullable, params.map { irGet(it).implicitCastIfNeededTo(typeAnyNullable) }),

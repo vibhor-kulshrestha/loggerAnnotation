@@ -21,6 +21,9 @@ object AutoDebug {
     }
 
     @JvmStatic
+    fun currentTimeMillis(): Long = System.currentTimeMillis()
+
+    @JvmStatic
     fun logEnter(tag: String, method: String, argsDescription: String) {
         log(tag, AutoDebugMessages.enter(method, argsDescription))
     }

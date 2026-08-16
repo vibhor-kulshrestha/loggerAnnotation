@@ -7,44 +7,34 @@ import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
 
 class IrAutoDebugSymbols(val context: IrPluginContext) {
-    private val owner = FqName("com.autodebug.runtime.AutoDebug")
-    private val kotlinPackage = FqName("kotlin")
+    private val runtimePackage = FqName("com.autodebug.runtime")
+    private val autoDebugClass = FqName("AutoDebug")
 
     val logEnter: IrSimpleFunctionSymbol = context.referenceFunctions(
-        CallableId(owner, Name.identifier("logEnter")),
+        CallableId(runtimePackage, autoDebugClass, Name.identifier("logEnter")),
     ).single()
 
     val logExit: IrSimpleFunctionSymbol = context.referenceFunctions(
-        CallableId(owner, Name.identifier("logExit")),
+        CallableId(runtimePackage, autoDebugClass, Name.identifier("logExit")),
     ).single()
 
     val logThrow: IrSimpleFunctionSymbol = context.referenceFunctions(
-        CallableId(owner, Name.identifier("logThrow")),
+        CallableId(runtimePackage, autoDebugClass, Name.identifier("logThrow")),
     ).single()
 
     val describeArgs: IrSimpleFunctionSymbol = context.referenceFunctions(
-        CallableId(owner, Name.identifier("describeArgs")),
+        CallableId(runtimePackage, autoDebugClass, Name.identifier("describeArgs")),
     ).single()
 
     val currentTimeMillis: IrSimpleFunctionSymbol = context.referenceFunctions(
-        CallableId(FqName("java.lang.System"), Name.identifier("currentTimeMillis")),
-    ).single { it.owner.valueParameters.isEmpty() }
+        CallableId(runtimePackage, autoDebugClass, Name.identifier("currentTimeMillis")),
+    ).single()
 
-    val arrayOfStrings: IrSimpleFunctionSymbol = context.referenceFunctions(
-        CallableId(kotlinPackage, Name.identifier("arrayOf")),
-    ).single {
-        val param = it.owner.valueParameters.singleOrNull() ?: return@single false
-        param.varargElementType == context.irBuiltIns.stringType
-    }
+    val arrayOf: IrSimpleFunctionSymbol = context.irBuiltIns.arrayOf
 
-    val arrayOfAnyNullable: IrSimpleFunctionSymbol = context.referenceFunctions(
-        CallableId(kotlinPackage, Name.identifier("arrayOf")),
-    ).single {
-        val param = it.owner.valueParameters.singleOrNull() ?: return@single false
-        param.varargElementType == context.irBuiltIns.anyNType
-    }
-
-    val longMinus: IrSimpleFunctionSymbol = context.referenceFunctions(
-        CallableId(FqName("kotlin.Long"), Name.identifier("minus")),
-    ).single { it.owner.valueParameters.size == 1 }
+    val longMinus: IrSimpleFunctionSymbol = context.irBuiltIns.getBinaryOperator(
+        Name.identifier("minus"),
+        context.irBuiltIns.longType,
+        context.irBuiltIns.longType,
+    )
 }

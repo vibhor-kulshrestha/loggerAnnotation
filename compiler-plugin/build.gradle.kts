@@ -21,8 +21,19 @@ dependencies {
     compileOnly(libs.kotlin.compiler.embeddable)
     compileOnly(project(":annotations"))
     compileOnly(project(":runtime"))
+
+    testImplementation(libs.junit.jupiter)
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testImplementation(libs.kotlin.compiler.embeddable)
+    testImplementation(project(":annotations"))
+    testImplementation(project(":runtime"))
+    testImplementation("dev.zacsweers.kctfork:core:0.7.1")
 }
 
 kotlin {
     jvmToolchain(17)
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
