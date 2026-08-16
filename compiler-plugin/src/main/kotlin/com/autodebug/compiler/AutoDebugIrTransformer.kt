@@ -9,6 +9,7 @@ import org.jetbrains.kotlin.ir.builders.irBlockBody
 import org.jetbrains.kotlin.ir.builders.irCall
 import org.jetbrains.kotlin.ir.builders.irGet
 import org.jetbrains.kotlin.ir.builders.irGetField
+import org.jetbrains.kotlin.ir.builders.irNull
 import org.jetbrains.kotlin.ir.builders.irReturn
 import org.jetbrains.kotlin.ir.builders.irSet
 import org.jetbrains.kotlin.ir.builders.irSetField
@@ -234,6 +235,11 @@ class AutoDebugIrTransformer(
         return isDispatchThis(call.dispatchReceiver, function)
     }
 
+    private fun isLateinitField(field: IrField): Boolean {
+        val property = field.correspondingPropertySymbol?.owner as? IrProperty ?: return false
+        return property.isLateinit
+    }
+
     private fun readTag(declaration: IrSimpleFunction): String {
         val explicitTag = declaration.getAnnotation(autoDebugFqName)
             ?.getAnnotationStringValue("tag")
@@ -304,7 +310,11 @@ class AutoDebugIrTransformer(
             val field = visited.symbol.owner as IrField
             val receiver = visited.receiver!!
             return DeclarationIrBuilder(pluginContext, function.symbol).irBlock(resultType = visited.type) {
-                val oldValue = irGetField(receiver, field).implicitCastIfNeededTo(typeAnyNullable)
+                val oldValue = if (isLateinitField(field)) {
+                    irNull(typeAnyNullable)
+                } else {
+                    irGetField(receiver, field).implicitCastIfNeededTo(typeAnyNullable)
+                }
                 val newTemp = irTemporary(visited.value, nameHint = "autodebugNew")
                 +irCall(symbols.logAssignment).apply {
                     putValueArgument(0, irString(tag))
@@ -329,9 +339,13 @@ class AutoDebugIrTransformer(
             val receiver = visited.dispatchReceiver!!
             val newValue = visited.getValueArgument(0) ?: return visited
             return DeclarationIrBuilder(pluginContext, function.symbol).irBlock(resultType = visited.type) {
-                val oldValue = irCall(getter.symbol).apply {
-                    dispatchReceiver = receiver
-                }.implicitCastIfNeededTo(typeAnyNullable)
+                val oldValue = if (property.isLateinit) {
+                    irNull(typeAnyNullable)
+                } else {
+                    irCall(getter.symbol).apply {
+                        dispatchReceiver = receiver
+                    }.implicitCastIfNeededTo(typeAnyNullable)
+                }
                 val newTemp = irTemporary(newValue, nameHint = "autodebugNew")
                 +irCall(symbols.logAssignment).apply {
                     putValueArgument(0, irString(tag))
