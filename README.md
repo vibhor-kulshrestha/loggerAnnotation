@@ -44,12 +44,12 @@ In the app (or library) module `build.gradle.kts`:
 plugins {
     id("com.android.application") // or library
     id("org.jetbrains.kotlin.android")
-    id("com.autodebug") version "0.1.0" // when published
+    id("io.github.vibhor-kulshrestha.autodebug") version "0.1.0" // when published
 }
 
 dependencies {
-    implementation("com.autodebug:annotations:0.1.0")
-    implementation("com.autodebug:runtime:0.1.0")
+    implementation("io.github.vibhor-kulshrestha:autodebug-annotations:0.1.0")
+    implementation("io.github.vibhor-kulshrestha:autodebug-runtime:0.1.0")
 }
 ```
 
@@ -125,7 +125,7 @@ Sample app: `sample-android` (`Demo`, `Accumulator`).
 | `annotations` | `@AutoDebug`, `DebugDepth`, `@AutoDebugSkip` |
 | `runtime` | Logging API + sink |
 | `compiler-plugin` | Kotlin IR instrumentation |
-| `gradle-plugin-build` | Gradle plugin `com.autodebug` |
+| `gradle-plugin-build` | Gradle plugin `io.github.vibhor-kulshrestha.autodebug` |
 | `sample-android` | Example app |
 
 ## Notes / limits

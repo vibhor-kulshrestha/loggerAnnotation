@@ -22,7 +22,7 @@ dependencies {
 gradlePlugin {
     plugins {
         create("autodebug") {
-            id = "com.autodebug"
+            id = "io.github.vibhor-kulshrestha.autodebug"
             implementationClass = "com.autodebug.gradle.AutoDebugGradlePlugin"
         }
     }

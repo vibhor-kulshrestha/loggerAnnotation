@@ -1,21 +1,18 @@
 plugins {
     alias(libs.plugins.kotlin.jvm)
-    `maven-publish`
+    alias(libs.plugins.maven.publish)
 }
 
-publishing {
-    publications {
-        create<MavenPublication>("maven") {
-            from(components["java"])
-            groupId = "com.autodebug"
-            artifactId = "runtime"
-            version = "0.1.0-SNAPSHOT"
-        }
+mavenPublishing {
+    coordinates("io.github.vibhor-kulshrestha", "autodebug-runtime", "0.1.0")
+    pom {
+        name.set("AutoDebug Runtime")
+        description.set("Runtime library for automated debugging.")
     }
 }
 
-group = "com.autodebug"
-version = "0.1.0-SNAPSHOT"
+group = "io.github.vibhor-kulshrestha"
+version = "0.1.0"
 
 dependencies {
     testImplementation(libs.junit.jupiter)

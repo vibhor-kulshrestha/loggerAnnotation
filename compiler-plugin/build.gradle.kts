@@ -1,21 +1,18 @@
 plugins {
     alias(libs.plugins.kotlin.jvm)
-    `maven-publish`
+    alias(libs.plugins.maven.publish)
 }
 
-publishing {
-    publications {
-        create<MavenPublication>("maven") {
-            from(components["java"])
-            groupId = "com.autodebug"
-            artifactId = "compiler-plugin"
-            version = "0.1.0-SNAPSHOT"
-        }
+mavenPublishing {
+    coordinates("io.github.vibhor-kulshrestha", "autodebug-compiler-plugin", "0.1.0")
+    pom {
+        name.set("AutoDebug Compiler Plugin")
+        description.set("Kotlin Compiler Plugin for automated debugging.")
     }
 }
 
-group = "com.autodebug"
-version = "0.1.0-SNAPSHOT"
+group = "io.github.vibhor-kulshrestha"
+version = "0.1.0"
 
 dependencies {
     compileOnly(libs.kotlin.compiler.embeddable)

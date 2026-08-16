@@ -1,7 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    id("com.autodebug")
+    id("io.github.vibhor-kulshrestha.autodebug")
 }
 
 android {
