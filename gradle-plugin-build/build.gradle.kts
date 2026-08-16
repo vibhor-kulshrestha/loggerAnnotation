@@ -52,9 +52,9 @@ mavenPublishing {
             }
         }
         scm {
-            connection.set("scm:git:://github.com")
-            developerConnection.set("scm:git:ssh://://github.com")
-            url.set("https://github.com")
+            connection.set("scm:git:git://github.com/vibhor-kulshrestha/loggerAnnotation.git")
+            developerConnection.set("scm:git:ssh://github.com/vibhor-kulshrestha/loggerAnnotation.git")
+            url.set("https://github.com/vibhor-kulshrestha/loggerAnnotation")
         }
     }
 }
