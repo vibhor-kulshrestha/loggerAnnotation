@@ -26,6 +26,10 @@ class IrAutoDebugSymbols(val context: IrPluginContext) {
         CallableId(runtimePackage, autoDebugClass, Name.identifier("logBranch")),
     ).single()
 
+    val logAssignment: IrSimpleFunctionSymbol = context.referenceFunctions(
+        CallableId(runtimePackage, autoDebugClass, Name.identifier("logAssignment")),
+    ).single()
+
     val describeArgs: IrSimpleFunctionSymbol = context.referenceFunctions(
         CallableId(runtimePackage, autoDebugClass, Name.identifier("describeArgs")),
     ).single()

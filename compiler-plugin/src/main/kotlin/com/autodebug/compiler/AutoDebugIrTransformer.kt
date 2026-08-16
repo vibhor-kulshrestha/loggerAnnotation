@@ -8,7 +8,10 @@ import org.jetbrains.kotlin.ir.builders.irBlock
 import org.jetbrains.kotlin.ir.builders.irBlockBody
 import org.jetbrains.kotlin.ir.builders.irCall
 import org.jetbrains.kotlin.ir.builders.irGet
+import org.jetbrains.kotlin.ir.builders.irGetField
 import org.jetbrains.kotlin.ir.builders.irReturn
+import org.jetbrains.kotlin.ir.builders.irSet
+import org.jetbrains.kotlin.ir.builders.irSetField
 import org.jetbrains.kotlin.ir.builders.irString
 import org.jetbrains.kotlin.ir.builders.irTemporary
 import org.jetbrains.kotlin.ir.builders.irTry
@@ -18,14 +21,21 @@ import org.jetbrains.kotlin.ir.builders.declarations.buildVariable
 import org.jetbrains.kotlin.ir.declarations.IrClass
 import org.jetbrains.kotlin.ir.declarations.IrDeclaration
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationOrigin
+import org.jetbrains.kotlin.ir.declarations.IrField
 import org.jetbrains.kotlin.ir.declarations.IrFunction
+import org.jetbrains.kotlin.ir.declarations.IrProperty
 import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
+import org.jetbrains.kotlin.ir.declarations.IrValueParameter
 import org.jetbrains.kotlin.ir.declarations.IrVariable
 import org.jetbrains.kotlin.ir.expressions.IrBlockBody
 import org.jetbrains.kotlin.ir.expressions.IrBody
+import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.ir.expressions.IrExpression
 import org.jetbrains.kotlin.ir.expressions.IrGetEnumValue
+import org.jetbrains.kotlin.ir.expressions.IrGetValue
 import org.jetbrains.kotlin.ir.expressions.IrReturn
+import org.jetbrains.kotlin.ir.expressions.IrSetField
+import org.jetbrains.kotlin.ir.expressions.IrSetValue
 import org.jetbrains.kotlin.ir.expressions.IrWhen
 import org.jetbrains.kotlin.ir.util.isTrueConst
 import org.jetbrains.kotlin.ir.expressions.impl.IrCatchImpl
@@ -51,7 +61,7 @@ class AutoDebugIrTransformer(
     private val pluginContext get() = symbols.context
     private val autoDebugFqName = FqName("com.autodebug.AutoDebug")
 
-    private enum class EffectiveDepth { BOUNDARY, BRANCHES }
+    private enum class EffectiveDepth { BOUNDARY, BRANCHES, VARS }
 
     private val typeUnit = pluginContext.irBuiltIns.unitType
     private val typeThrowable = pluginContext.irBuiltIns.throwableType
@@ -77,8 +87,16 @@ class AutoDebugIrTransformer(
     private fun instrumentBody(function: IrSimpleFunction, body: IrBlockBody): IrBody {
         val tag = readTag(function)
         val methodName = function.name.asString()
-        val branchTransformer = if (readDepth(function) == EffectiveDepth.BRANCHES) {
+        val depth = readDepth(function)
+        val wantBranches = depth == EffectiveDepth.BRANCHES || depth == EffectiveDepth.VARS
+        val wantVars = depth == EffectiveDepth.VARS
+        val branchTransformer = if (wantBranches) {
             BranchLoggingTransformer(function, tag, methodName)
+        } else {
+            null
+        }
+        val varsTransformer = if (wantVars) {
+            VarsLoggingTransformer(function, tag, methodName)
         } else {
             null
         }
@@ -98,10 +116,12 @@ class AutoDebugIrTransformer(
 
             val tryBlock = irBlock(resultType = function.returnType) {
                 for (statement in body.statements) {
-                    val transformed = if (branchTransformer != null) {
-                        statement.transform(branchTransformer, null) as IrStatement
-                    } else {
-                        statement
+                    var transformed: IrStatement = statement
+                    if (branchTransformer != null) {
+                        transformed = transformed.transform(branchTransformer, null) as IrStatement
+                    }
+                    if (varsTransformer != null) {
+                        transformed = transformed.transform(varsTransformer, null) as IrStatement
                     }
                     +transformed
                 }
@@ -190,9 +210,28 @@ class AutoDebugIrTransformer(
             else -> return EffectiveDepth.BOUNDARY
         }
         return when (enumEntryName) {
-            "BRANCHES", "VARS" -> EffectiveDepth.BRANCHES
+            "BRANCHES" -> EffectiveDepth.BRANCHES
+            "VARS" -> EffectiveDepth.VARS
             else -> EffectiveDepth.BOUNDARY
         }
+    }
+
+    private fun isDispatchThis(receiver: IrExpression?, function: IrSimpleFunction): Boolean {
+        if (receiver == null) return false
+        val thisParam = function.dispatchReceiverParameter ?: return false
+        return receiver is IrGetValue && receiver.symbol == thisParam.symbol
+    }
+
+    private fun isLocalMutableVariable(setValue: IrSetValue): Boolean {
+        val owner = setValue.symbol.owner
+        return owner is IrVariable && owner !is IrValueParameter
+    }
+
+    private fun isThisPropertySetterCall(call: IrCall, function: IrSimpleFunction): Boolean {
+        val callee = call.symbol.owner as? IrSimpleFunction ?: return false
+        val property = callee.correspondingPropertySymbol?.owner as? IrProperty ?: return false
+        if (property.setter?.symbol != callee.symbol) return false
+        return isDispatchThis(call.dispatchReceiver, function)
     }
 
     private fun readTag(declaration: IrSimpleFunction): String {
@@ -228,6 +267,83 @@ class AutoDebugIrTransformer(
                 "when#$index-else"
             } else {
                 "when#$index"
+            }
+        }
+    }
+
+    private inner class VarsLoggingTransformer(
+        private val function: IrSimpleFunction,
+        private val tag: String,
+        private val methodName: String,
+    ) : IrElementTransformerVoid() {
+        override fun visitSetValue(expression: IrSetValue): IrExpression {
+            val visited = super.visitSetValue(expression) as IrSetValue
+            if (!isLocalMutableVariable(visited)) {
+                return visited
+            }
+            val variable = visited.symbol.owner as IrVariable
+            return DeclarationIrBuilder(pluginContext, function.symbol).irBlock(resultType = visited.type) {
+                val oldValue = irGet(variable).implicitCastIfNeededTo(typeAnyNullable)
+                val newTemp = irTemporary(visited.value, nameHint = "autodebugNew")
+                +irCall(symbols.logAssignment).apply {
+                    putValueArgument(0, irString(tag))
+                    putValueArgument(1, irString(methodName))
+                    putValueArgument(2, irString(variable.name.asString()))
+                    putValueArgument(3, oldValue)
+                    putValueArgument(4, irGet(newTemp).implicitCastIfNeededTo(typeAnyNullable))
+                }
+                +irSet(visited.symbol, irGet(newTemp))
+            }
+        }
+
+        override fun visitSetField(expression: IrSetField): IrExpression {
+            val visited = super.visitSetField(expression) as IrSetField
+            if (!isDispatchThis(visited.receiver, function)) {
+                return visited
+            }
+            val field = visited.symbol.owner as IrField
+            val receiver = visited.receiver!!
+            return DeclarationIrBuilder(pluginContext, function.symbol).irBlock(resultType = visited.type) {
+                val oldValue = irGetField(receiver, field).implicitCastIfNeededTo(typeAnyNullable)
+                val newTemp = irTemporary(visited.value, nameHint = "autodebugNew")
+                +irCall(symbols.logAssignment).apply {
+                    putValueArgument(0, irString(tag))
+                    putValueArgument(1, irString(methodName))
+                    putValueArgument(2, irString(field.name.asString()))
+                    putValueArgument(3, oldValue)
+                    putValueArgument(4, irGet(newTemp).implicitCastIfNeededTo(typeAnyNullable))
+                }
+                +irSetField(receiver, field, irGet(newTemp))
+            }
+        }
+
+        override fun visitCall(expression: IrCall): IrExpression {
+            val visited = super.visitCall(expression) as IrCall
+            if (!isThisPropertySetterCall(visited, function)) {
+                return visited
+            }
+            val property = (visited.symbol.owner as IrSimpleFunction)
+                .correspondingPropertySymbol!!
+                .owner as IrProperty
+            val getter = property.getter ?: return visited
+            val receiver = visited.dispatchReceiver!!
+            val newValue = visited.getValueArgument(0) ?: return visited
+            return DeclarationIrBuilder(pluginContext, function.symbol).irBlock(resultType = visited.type) {
+                val oldValue = irCall(getter.symbol).apply {
+                    dispatchReceiver = receiver
+                }.implicitCastIfNeededTo(typeAnyNullable)
+                val newTemp = irTemporary(newValue, nameHint = "autodebugNew")
+                +irCall(symbols.logAssignment).apply {
+                    putValueArgument(0, irString(tag))
+                    putValueArgument(1, irString(methodName))
+                    putValueArgument(2, irString(property.name.asString()))
+                    putValueArgument(3, oldValue)
+                    putValueArgument(4, irGet(newTemp).implicitCastIfNeededTo(typeAnyNullable))
+                }
+                +irCall(visited.symbol).apply {
+                    dispatchReceiver = receiver
+                    putValueArgument(0, irGet(newTemp))
+                }
             }
         }
     }
