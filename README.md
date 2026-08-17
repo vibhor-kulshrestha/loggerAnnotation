@@ -102,7 +102,24 @@ class Wallet {
 }
 ```
 
-### 4. Depth guide
+### 4. Skipping functions (In Progress)
+
+The `@AutoDebugSkip` annotation is available in the `annotations` module. It is designed to let you exclude specific functions from being debugged when applying `@AutoDebug` at the class level (e.g., to avoid logging sensitive data or fast-running loops):
+
+```kotlin
+@AutoDebug
+class UserRepository {
+    fun fetchUser() { ... }
+
+    @AutoDebugSkip // 👈 Excludes this function from logging
+    fun login(password: String) { ... }
+}
+```
+
+> [!NOTE]
+> Class-level `@AutoDebug` and the `@AutoDebugSkip` filter are currently **in progress** and not yet fully supported in the compiler plugin. Currently, you must annotate individual functions with `@AutoDebug`.
+
+### 5. Depth guide
 
 - **`BOUNDARY`** — safest default for everyday debugging.
 - **`BRANCHES`** — when you care which `if`/`when` path ran.
@@ -110,7 +127,7 @@ class Wallet {
 
 Empty `tag` → class name (or file name for top-level functions).
 
-### 5. Runtime kill switch
+### 6. Runtime kill switch
 
 ```kotlin
 com.autodebug.runtime.AutoDebugConfig.enabled = false
