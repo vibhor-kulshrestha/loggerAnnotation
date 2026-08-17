@@ -28,23 +28,38 @@ Demo  ↻ bump · total: 0 → 3
 Demo  ⇠ bump = 3 [0ms]
 ```
 
-## Status
+## Usage
 
-**Library API is usable in-repo today.** Public Maven / Plugin Portal publishing is not set up yet — consumers must depend on this project via composite build / `mavenLocal`, or wait for a published release.
+### 1. Configure repositories
 
-Compatible with **Kotlin 2.1.21**, **AGP 8.9.1**, **Gradle 8.13** (see `gradle/libs.versions.toml`).
+Make sure `mavenCentral()` is defined in your root `settings.gradle.kts` file:
 
-## Usage (after you publish / use mavenLocal)
+```kotlin
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral() // 👈 Required for the plugin
+        gradlePluginPortal()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral() // 👈 Required for library dependencies
+    }
+}
+```
 
-### 1. Apply the plugin
+### 2. Apply the plugin and dependencies
 
-In the app (or library) module `build.gradle.kts`:
+In your app (or library) module's `build.gradle.kts` file:
 
 ```kotlin
 plugins {
     id("com.android.application") // or library
     id("org.jetbrains.kotlin.android")
-    id("io.github.vibhor-kulshrestha.autodebug") version "0.1.0" // when published
+    id("io.github.vibhor-kulshrestha.autodebug") version "0.1.0"
 }
 
 dependencies {
@@ -53,9 +68,7 @@ dependencies {
 }
 ```
 
-Until Maven Central is available, use this repo’s modules via `includeBuild` / `mavenLocal` (see **Local development** below).
-
-### 2. Annotate functions
+### 3. Annotate functions
 
 ```kotlin
 import com.autodebug.AutoDebug
@@ -89,7 +102,7 @@ class Wallet {
 }
 ```
 
-### 3. Depth guide
+### 4. Depth guide
 
 - **`BOUNDARY`** — safest default for everyday debugging.
 - **`BRANCHES`** — when you care which `if`/`when` path ran.
@@ -97,7 +110,7 @@ class Wallet {
 
 Empty `tag` → class name (or file name for top-level functions).
 
-### 4. Runtime kill switch
+### 5. Runtime kill switch
 
 ```kotlin
 com.autodebug.runtime.AutoDebugConfig.enabled = false
@@ -107,11 +120,9 @@ The Gradle plugin also passes `enabled=false` for non-debug compilations (e.g. r
 
 ## Local development (this repo)
 
-```bash
-./gradlew :annotations:publishToMavenLocal \
-          :runtime:publishToMavenLocal \
-          :compiler-plugin:publishToMavenLocal
+To build and run the sample application locally:
 
+```bash
 ./gradlew :sample-android:assembleDebug
 # optional: installDebug and filter Logcat with tag Demo
 ```
@@ -135,6 +146,11 @@ Sample app: `sample-android` (`Demo`, `Accumulator`).
 - Long values are truncated (~300 chars); `toString()` failures are caught.
 - Do not annotate methods that always handle secrets (passwords, tokens) at `VARS` depth.
 - Keep the plugin Kotlin version aligned with your project’s Kotlin version.
+- Compatible with **Kotlin 2.1.21**, **AGP 8.9.1**, **Gradle 8.13** (see `gradle/libs.versions.toml`).
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit issues, fork the repository, or open pull requests to improve the project.
 
 ## License
 
