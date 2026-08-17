@@ -20,7 +20,7 @@ class AutoDebugGradlePlugin : KotlinCompilerPluginSupportPlugin {
         SubpluginArtifact(
             groupId = "io.github.vibhor-kulshrestha",
             artifactId = "autodebug-compiler-plugin",
-            version = "0.1.2",
+            version = "0.1.3",
         )
 
     override fun applyToCompilation(

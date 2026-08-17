@@ -1,3 +1,5 @@
+@file:OptIn(org.jetbrains.kotlin.ir.symbols.UnsafeDuringIrConstructionAPI::class)
+
 package com.autodebug.compiler
 
 import org.jetbrains.kotlin.backend.common.IrElementTransformerVoidWithContext
@@ -9,6 +11,7 @@ import org.jetbrains.kotlin.ir.builders.irBlockBody
 import org.jetbrains.kotlin.ir.builders.irCall
 import org.jetbrains.kotlin.ir.builders.irGet
 import org.jetbrains.kotlin.ir.builders.irGetField
+import org.jetbrains.kotlin.ir.builders.irGetObjectValue
 import org.jetbrains.kotlin.ir.builders.irNull
 import org.jetbrains.kotlin.ir.builders.irReturn
 import org.jetbrains.kotlin.ir.builders.irSet
@@ -24,6 +27,7 @@ import org.jetbrains.kotlin.ir.declarations.IrDeclaration
 import org.jetbrains.kotlin.ir.declarations.IrDeclarationOrigin
 import org.jetbrains.kotlin.ir.declarations.IrField
 import org.jetbrains.kotlin.ir.declarations.IrFunction
+import org.jetbrains.kotlin.ir.declarations.IrParameterKind
 import org.jetbrains.kotlin.ir.declarations.IrProperty
 import org.jetbrains.kotlin.ir.declarations.IrSimpleFunction
 import org.jetbrains.kotlin.ir.declarations.IrValueParameter
@@ -32,15 +36,17 @@ import org.jetbrains.kotlin.ir.expressions.IrBlockBody
 import org.jetbrains.kotlin.ir.expressions.IrBody
 import org.jetbrains.kotlin.ir.expressions.IrCall
 import org.jetbrains.kotlin.ir.expressions.IrExpression
+import org.jetbrains.kotlin.ir.expressions.IrFunctionAccessExpression
 import org.jetbrains.kotlin.ir.expressions.IrGetEnumValue
 import org.jetbrains.kotlin.ir.expressions.IrGetValue
 import org.jetbrains.kotlin.ir.expressions.IrReturn
 import org.jetbrains.kotlin.ir.expressions.IrSetField
 import org.jetbrains.kotlin.ir.expressions.IrSetValue
 import org.jetbrains.kotlin.ir.expressions.IrWhen
+import org.jetbrains.kotlin.ir.symbols.IrSimpleFunctionSymbol
 import org.jetbrains.kotlin.ir.util.isTrueConst
-import org.jetbrains.kotlin.ir.expressions.impl.IrCatchImpl
 import org.jetbrains.kotlin.ir.expressions.impl.IrThrowImpl
+import org.jetbrains.kotlin.ir.util.defaultType
 import org.jetbrains.kotlin.ir.util.file
 import org.jetbrains.kotlin.ir.util.getAnnotation
 import org.jetbrains.kotlin.ir.util.getAnnotationStringValue
@@ -48,6 +54,7 @@ import org.jetbrains.kotlin.ir.util.getValueArgument
 import org.jetbrains.kotlin.ir.util.hasAnnotation
 import org.jetbrains.kotlin.ir.util.implicitCastIfNeededTo
 import org.jetbrains.kotlin.ir.util.isFileClass
+import org.jetbrains.kotlin.ir.util.parentAsClass
 import org.jetbrains.kotlin.ir.visitors.IrElementTransformerVoid
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.name.Name
@@ -103,14 +110,14 @@ class AutoDebugIrTransformer(
         }
 
         return DeclarationIrBuilder(pluginContext, function.symbol).irBlockBody {
-            +irCall(symbols.logEnter).apply {
-                putValueArgument(0, irString(tag))
-                putValueArgument(1, irString(methodName))
-                putValueArgument(2, buildArgsDescription(function))
+            +irAutoDebugCall(symbols.logEnter).apply {
+                putRegularArgument(0, irString(tag))
+                putRegularArgument(1, irString(methodName))
+                putRegularArgument(2, buildArgsDescription(function))
             }
 
             val start = irTemporary(
-                irCall(symbols.currentTimeMillis),
+                irAutoDebugCall(symbols.currentTimeMillis),
                 nameHint = "autodebugStart",
                 irType = typeLong,
             )
@@ -152,22 +159,27 @@ class AutoDebugIrTransformer(
     }
 
     private fun IrBuilderWithScope.buildArgsDescription(function: IrSimpleFunction): IrExpression {
-        val params = function.valueParameters
+        val params = function.parameters.filter {
+            it.kind == IrParameterKind.Regular || it.kind == IrParameterKind.Context
+        }
         if (params.isEmpty()) {
             return irString("")
         }
         val namesArray = irCall(symbols.arrayOf).apply {
-            putValueArgument(0, irVararg(pluginContext.irBuiltIns.stringType, params.map { irString(it.name.asString()) }))
+            putRegularArgument(
+                0,
+                irVararg(pluginContext.irBuiltIns.stringType, params.map { irString(it.name.asString()) }),
+            )
         }
         val valuesArray = irCall(symbols.arrayOf).apply {
-            putValueArgument(
+            putRegularArgument(
                 0,
                 irVararg(typeAnyNullable, params.map { irGet(it).implicitCastIfNeededTo(typeAnyNullable) }),
             )
         }
-        return irCall(symbols.describeArgs).apply {
-            putValueArgument(0, namesArray)
-            putValueArgument(1, valuesArray)
+        return irAutoDebugCall(symbols.describeArgs).apply {
+            putRegularArgument(0, namesArray)
+            putRegularArgument(1, valuesArray)
         }
     }
 
@@ -177,11 +189,11 @@ class AutoDebugIrTransformer(
         methodName: String,
         start: IrVariable,
         result: IrExpression,
-    ): IrExpression = irCall(symbols.logExit).apply {
-        putValueArgument(0, irString(tag))
-        putValueArgument(1, irString(methodName))
-        putValueArgument(2, result.implicitCastIfNeededTo(typeAnyNullable))
-        putValueArgument(3, irDurationSince(start))
+    ): IrExpression = irAutoDebugCall(symbols.logExit).apply {
+        putRegularArgument(0, irString(tag))
+        putRegularArgument(1, irString(methodName))
+        putRegularArgument(2, result.implicitCastIfNeededTo(typeAnyNullable))
+        putRegularArgument(3, irDurationSince(start))
     }
 
     private fun IrBuilderWithScope.irLogExitThrow(
@@ -190,18 +202,46 @@ class AutoDebugIrTransformer(
         methodName: String,
         start: IrVariable,
         throwable: IrExpression,
-    ): IrExpression = irCall(symbols.logThrow).apply {
-        putValueArgument(0, irString(tag))
-        putValueArgument(1, irString(methodName))
-        putValueArgument(2, throwable)
-        putValueArgument(3, irDurationSince(start))
+    ): IrExpression = irAutoDebugCall(symbols.logThrow).apply {
+        putRegularArgument(0, irString(tag))
+        putRegularArgument(1, irString(methodName))
+        putRegularArgument(2, throwable)
+        putRegularArgument(3, irDurationSince(start))
     }
 
     private fun IrBuilderWithScope.irDurationSince(start: IrVariable): IrExpression =
         irCall(symbols.longMinus).apply {
-            dispatchReceiver = irCall(symbols.currentTimeMillis)
-            putValueArgument(0, irGet(start))
+            val dispatch = symbol.owner.parameters.first { it.kind == IrParameterKind.DispatchReceiver }
+            arguments[dispatch] = irAutoDebugCall(symbols.currentTimeMillis)
+            putRegularArgument(0, irGet(start))
         }
+
+    private fun IrBuilderWithScope.irAutoDebugReceiver(): IrExpression {
+        val klass = symbols.logEnter.owner.parentAsClass
+        return irGetObjectValue(klass.defaultType, klass.symbol)
+    }
+
+    private fun IrBuilderWithScope.irAutoDebugCall(callee: IrSimpleFunctionSymbol): IrCall =
+        irCall(callee).apply {
+            val dispatch = callee.owner.parameters.firstOrNull { it.kind == IrParameterKind.DispatchReceiver }
+            if (dispatch != null) {
+                arguments[dispatch] = irAutoDebugReceiver()
+            }
+        }
+
+    private fun IrFunctionAccessExpression.putRegularArgument(index: Int, value: IrExpression?) {
+        val regular = symbol.owner.parameters.filter {
+            it.kind == IrParameterKind.Regular || it.kind == IrParameterKind.Context
+        }
+        arguments[regular[index]] = value
+    }
+
+    private fun IrFunctionAccessExpression.getRegularArgument(index: Int): IrExpression? {
+        val regular = symbol.owner.parameters.filter {
+            it.kind == IrParameterKind.Regular || it.kind == IrParameterKind.Context
+        }
+        return arguments[regular[index]]
+    }
 
     private fun readDepth(function: IrSimpleFunction): EffectiveDepth {
         val annotation = function.getAnnotation(autoDebugFqName) ?: return EffectiveDepth.BOUNDARY
@@ -291,12 +331,12 @@ class AutoDebugIrTransformer(
             return DeclarationIrBuilder(pluginContext, function.symbol).irBlock(resultType = visited.type) {
                 val oldValue = irGet(variable).implicitCastIfNeededTo(typeAnyNullable)
                 val newTemp = irTemporary(visited.value, nameHint = "autodebugNew")
-                +irCall(symbols.logAssignment).apply {
-                    putValueArgument(0, irString(tag))
-                    putValueArgument(1, irString(methodName))
-                    putValueArgument(2, irString(variable.name.asString()))
-                    putValueArgument(3, oldValue)
-                    putValueArgument(4, irGet(newTemp).implicitCastIfNeededTo(typeAnyNullable))
+                +irAutoDebugCall(symbols.logAssignment).apply {
+                    putRegularArgument(0, irString(tag))
+                    putRegularArgument(1, irString(methodName))
+                    putRegularArgument(2, irString(variable.name.asString()))
+                    putRegularArgument(3, oldValue)
+                    putRegularArgument(4, irGet(newTemp).implicitCastIfNeededTo(typeAnyNullable))
                 }
                 +irSet(visited.symbol, irGet(newTemp))
             }
@@ -316,12 +356,12 @@ class AutoDebugIrTransformer(
                     irGetField(receiver, field).implicitCastIfNeededTo(typeAnyNullable)
                 }
                 val newTemp = irTemporary(visited.value, nameHint = "autodebugNew")
-                +irCall(symbols.logAssignment).apply {
-                    putValueArgument(0, irString(tag))
-                    putValueArgument(1, irString(methodName))
-                    putValueArgument(2, irString(field.name.asString()))
-                    putValueArgument(3, oldValue)
-                    putValueArgument(4, irGet(newTemp).implicitCastIfNeededTo(typeAnyNullable))
+                +irAutoDebugCall(symbols.logAssignment).apply {
+                    putRegularArgument(0, irString(tag))
+                    putRegularArgument(1, irString(methodName))
+                    putRegularArgument(2, irString(field.name.asString()))
+                    putRegularArgument(3, oldValue)
+                    putRegularArgument(4, irGet(newTemp).implicitCastIfNeededTo(typeAnyNullable))
                 }
                 +irSetField(receiver, field, irGet(newTemp))
             }
@@ -337,26 +377,30 @@ class AutoDebugIrTransformer(
                 .owner as IrProperty
             val getter = property.getter ?: return visited
             val receiver = visited.dispatchReceiver!!
-            val newValue = visited.getValueArgument(0) ?: return visited
+            val newValue = visited.getRegularArgument(0) ?: return visited
             return DeclarationIrBuilder(pluginContext, function.symbol).irBlock(resultType = visited.type) {
                 val oldValue = if (property.isLateinit) {
                     irNull(typeAnyNullable)
                 } else {
                     irCall(getter.symbol).apply {
-                        dispatchReceiver = receiver
+                        val dispatch = getter.parameters.first { it.kind == IrParameterKind.DispatchReceiver }
+                        arguments[dispatch] = receiver
                     }.implicitCastIfNeededTo(typeAnyNullable)
                 }
                 val newTemp = irTemporary(newValue, nameHint = "autodebugNew")
-                +irCall(symbols.logAssignment).apply {
-                    putValueArgument(0, irString(tag))
-                    putValueArgument(1, irString(methodName))
-                    putValueArgument(2, irString(property.name.asString()))
-                    putValueArgument(3, oldValue)
-                    putValueArgument(4, irGet(newTemp).implicitCastIfNeededTo(typeAnyNullable))
+                +irAutoDebugCall(symbols.logAssignment).apply {
+                    putRegularArgument(0, irString(tag))
+                    putRegularArgument(1, irString(methodName))
+                    putRegularArgument(2, irString(property.name.asString()))
+                    putRegularArgument(3, oldValue)
+                    putRegularArgument(4, irGet(newTemp).implicitCastIfNeededTo(typeAnyNullable))
                 }
                 +irCall(visited.symbol).apply {
-                    dispatchReceiver = receiver
-                    putValueArgument(0, irGet(newTemp))
+                    val dispatch = visited.symbol.owner.parameters.first {
+                        it.kind == IrParameterKind.DispatchReceiver
+                    }
+                    arguments[dispatch] = receiver
+                    putRegularArgument(0, irGet(newTemp))
                 }
             }
         }
@@ -379,10 +423,10 @@ class AutoDebugIrTransformer(
 
         private fun wrapBranchResult(result: IrExpression, label: String): IrExpression =
             DeclarationIrBuilder(pluginContext, function.symbol).irBlock(resultType = result.type) {
-                +irCall(symbols.logBranch).apply {
-                    putValueArgument(0, irString(tag))
-                    putValueArgument(1, irString(methodName))
-                    putValueArgument(2, irString(label))
+                +irAutoDebugCall(symbols.logBranch).apply {
+                    putRegularArgument(0, irString(tag))
+                    putRegularArgument(1, irString(methodName))
+                    putRegularArgument(2, irString(label))
                 }
                 +result
             }

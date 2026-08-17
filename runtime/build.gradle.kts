@@ -4,7 +4,7 @@ plugins {
 }
 
 mavenPublishing {
-    coordinates("io.github.vibhor-kulshrestha", "autodebug-runtime", "0.1.2")
+    coordinates("io.github.vibhor-kulshrestha", "autodebug-runtime", "0.1.3")
     pom {
         name.set("AutoDebug Runtime")
         description.set("Runtime library for automated debugging.")
@@ -12,7 +12,7 @@ mavenPublishing {
 }
 
 group = "io.github.vibhor-kulshrestha"
-version = "0.1.2"
+version = "0.1.3"
 
 dependencies {
     testImplementation(libs.junit.jupiter)

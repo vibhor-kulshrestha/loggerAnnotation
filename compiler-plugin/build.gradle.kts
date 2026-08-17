@@ -4,7 +4,7 @@ plugins {
 }
 
 mavenPublishing {
-    coordinates("io.github.vibhor-kulshrestha", "autodebug-compiler-plugin", "0.1.2")
+    coordinates("io.github.vibhor-kulshrestha", "autodebug-compiler-plugin", "0.1.3")
     pom {
         name.set("AutoDebug Compiler Plugin")
         description.set("Kotlin Compiler Plugin for automated debugging.")
@@ -12,7 +12,7 @@ mavenPublishing {
 }
 
 group = "io.github.vibhor-kulshrestha"
-version = "0.1.2"
+version = "0.1.3"
 
 dependencies {
     compileOnly(libs.kotlin.compiler.embeddable)
@@ -24,7 +24,7 @@ dependencies {
     testImplementation(libs.kotlin.compiler.embeddable)
     testImplementation(project(":annotations"))
     testImplementation(project(":runtime"))
-    testImplementation("dev.zacsweers.kctfork:core:0.7.1")
+    testImplementation("dev.zacsweers.kctfork:core:0.8.0")
 }
 
 kotlin {

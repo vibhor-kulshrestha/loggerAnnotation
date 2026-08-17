@@ -59,12 +59,12 @@ In your app (or library) module's `build.gradle.kts` file:
 plugins {
     id("com.android.application") // or library
     id("org.jetbrains.kotlin.android")
-    id("io.github.vibhor-kulshrestha.autodebug") version "0.1.2"
+    id("io.github.vibhor-kulshrestha.autodebug") version "0.1.3"
 }
 
 dependencies {
-    implementation("io.github.vibhor-kulshrestha:autodebug-annotations:0.1.2")
-    implementation("io.github.vibhor-kulshrestha:autodebug-runtime:0.1.2")
+    implementation("io.github.vibhor-kulshrestha:autodebug-annotations:0.1.3")
+    implementation("io.github.vibhor-kulshrestha:autodebug-runtime:0.1.3")
 }
 ```
 
@@ -163,7 +163,7 @@ Sample app: `sample-android` (`Demo`, `Accumulator`).
 - Long values are truncated (~300 chars); `toString()` failures are caught.
 - Do not annotate methods that always handle secrets (passwords, tokens) at `VARS` depth.
 - Keep the plugin Kotlin version aligned with your project’s Kotlin version.
-- Compatible with **Kotlin 2.1.21**, **AGP 8.9.1**, **Gradle 8.13** (see `gradle/libs.versions.toml`).
+- Compatible with **Kotlin 2.2.0**, **AGP 8.9.1**, **Gradle 8.13** (see `gradle/libs.versions.toml`).
 
 ## Contributing
 

@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "io.github.vibhor-kulshrestha"
-version = "0.1.2"
+version = "0.1.3"
 
 repositories {
     google()
@@ -16,7 +16,7 @@ repositories {
 }
 
 dependencies {
-    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin-api:2.1.21")
+    implementation("org.jetbrains.kotlin:kotlin-gradle-plugin-api:2.2.0")
 }
 
 gradlePlugin {
@@ -33,7 +33,7 @@ mavenPublishing {
     signAllPublications()
 
     // Explicitly matches your new GitHub verified group ID
-    coordinates("io.github.vibhor-kulshrestha", "autodebug-plugin", "0.1.2")
+    coordinates("io.github.vibhor-kulshrestha", "autodebug-plugin", "0.1.3")
 
     pom {
         name.set("AutoDebug Gradle Plugin")
