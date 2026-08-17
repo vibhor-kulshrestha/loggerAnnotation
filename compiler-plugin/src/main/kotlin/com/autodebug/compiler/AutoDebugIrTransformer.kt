@@ -145,7 +145,7 @@ class AutoDebugIrTransformer(
                 +IrThrowImpl(startOffset, endOffset, typeUnit, irGet(catchParam))
             }
 
-            val catch = IrCatchImpl(startOffset, endOffset, catchParam, catchBlock, null)
+            val catch = IrCatchFactory.createCatch(startOffset, endOffset, catchParam, catchBlock)
 
             +irTry(typeUnit, tryBlock, listOf(catch), null)
         }

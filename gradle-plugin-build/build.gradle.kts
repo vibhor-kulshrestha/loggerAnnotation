@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "io.github.vibhor-kulshrestha"
-version = "0.1.0"
+version = "0.1.2"
 
 repositories {
     google()
@@ -33,7 +33,7 @@ mavenPublishing {
     signAllPublications()
 
     // Explicitly matches your new GitHub verified group ID
-    coordinates("io.github.vibhor-kulshrestha", "autodebug-plugin", "0.1.0")
+    coordinates("io.github.vibhor-kulshrestha", "autodebug-plugin", "0.1.2")
 
     pom {
         name.set("AutoDebug Gradle Plugin")

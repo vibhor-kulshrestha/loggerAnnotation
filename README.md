@@ -59,12 +59,12 @@ In your app (or library) module's `build.gradle.kts` file:
 plugins {
     id("com.android.application") // or library
     id("org.jetbrains.kotlin.android")
-    id("io.github.vibhor-kulshrestha.autodebug") version "0.1.0"
+    id("io.github.vibhor-kulshrestha.autodebug") version "0.1.2"
 }
 
 dependencies {
-    implementation("io.github.vibhor-kulshrestha:autodebug-annotations:0.1.0")
-    implementation("io.github.vibhor-kulshrestha:autodebug-runtime:0.1.0")
+    implementation("io.github.vibhor-kulshrestha:autodebug-annotations:0.1.2")
+    implementation("io.github.vibhor-kulshrestha:autodebug-runtime:0.1.2")
 }
 ```
 

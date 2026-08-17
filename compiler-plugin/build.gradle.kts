@@ -4,7 +4,7 @@ plugins {
 }
 
 mavenPublishing {
-    coordinates("io.github.vibhor-kulshrestha", "autodebug-compiler-plugin", "0.1.0")
+    coordinates("io.github.vibhor-kulshrestha", "autodebug-compiler-plugin", "0.1.2")
     pom {
         name.set("AutoDebug Compiler Plugin")
         description.set("Kotlin Compiler Plugin for automated debugging.")
@@ -12,7 +12,7 @@ mavenPublishing {
 }
 
 group = "io.github.vibhor-kulshrestha"
-version = "0.1.0"
+version = "0.1.2"
 
 dependencies {
     compileOnly(libs.kotlin.compiler.embeddable)
